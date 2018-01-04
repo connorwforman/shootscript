@@ -1,0 +1,128 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI; 
+
+
+public class FullAuto : MonoBehaviour {
+
+	//ints
+	public int MaxAmmo = 31;
+	private int CurrentAmmo;
+	private int EmptyMag = 0; 
+	//floats
+	public float ReloadTime = 1.5f;
+	public float damage = 100f; 
+	public float range = 200f; 
+	EnemyHealth health; 
+	public float hitForce = 5.0f;
+	public float ShootDelay = .2f; 
+	public float delay = 0.5f;
+	public float timeLeft = 0.5f;
+	//audiosources
+	public AudioSource shotSound; 
+	public AudioSource ReloadSound; 
+	//gameobjects
+	public GameObject BulletNumerator; 
+	public GameObject BulletDenomonator; 
+	public GameObject WeaponCamera; 
+	public ParticleSystem MuzzleFlash;
+	public GameObject impactEffect;
+	//bools
+	public bool isShooting; 
+	private bool isReloading = false; 
+	private bool isAimed = false; 
+	//animators
+	public Animator AimAnimator; 
+
+	void Start () { 
+		BulletDenomonator.GetComponent<Text> ().text = "" + MaxAmmo;; 
+		BulletNumerator.GetComponent<Text> ().text = "" + CurrentAmmo; 
+		CurrentAmmo = MaxAmmo;
+		isShooting = false; 
+
+	}
+
+	void Update () {
+		BulletDenomonator.GetComponent<Text> ().text = "" + MaxAmmo;; 
+		BulletNumerator.GetComponent<Text> ().text = "" + CurrentAmmo; 
+
+		if (timeLeft > delay) {
+			timeLeft -= Time.deltaTime;
+		}
+			
+		if (Input.GetButtonDown ("Fire1")) {
+			isShooting = true; 
+			StartCoroutine (Shoot ());  
+		}
+
+		if (Input.GetButtonUp ("Fire1")) {
+			isShooting = false; 
+
+		}
+
+		if (Input.GetButtonDown ("Fire2")) {
+			isAimed = true; 
+		}
+
+		if (Input.GetButtonUp ("Fire2")) {
+			isAimed = false; 
+		}
+
+		if (isAimed == true) {
+			AimAnimator.SetBool ("isAimed/Scoped", true); 
+		}
+
+		if (isAimed == false) {
+			AimAnimator.SetBool ("isAimed/Scoped", false); 
+		}
+
+		if (Input.GetButtonDown ("Reload") && !isReloading) {
+			isReloading = true; 
+			StartCoroutine (Reload()); 
+
+
+		}
+
+		if (CurrentAmmo <= 0.5) {
+			Reload (); 
+		}
+}
+
+	IEnumerator Shoot () {
+		if (isShooting == true) {
+
+		if (CurrentAmmo <= .5)
+			break; 
+		
+			RaycastHit hit;  
+			if (Physics.Raycast (WeaponCamera.transform.position, WeaponCamera.transform.forward, out hit, range)) {
+				Debug.Log (hit.transform.name); 
+			
+				health = hit.transform.GetComponent<EnemyHealth> (); 
+				if (health != null) {
+					health.TakeDamage (damage); 
+				}
+
+				if (hit.rigidbody != null) {
+					hit.rigidbody.AddForce (-hit.normal * hitForce); 
+				}
+
+				GameObject impactGO = Instantiate (impactEffect, hit.point, Quaternion.LookRotation (hit.normal)); 
+				Destroy (impactGO, 2f); 
+			}
+			CurrentAmmo--; 
+			shotSound.Play (); 
+	}
+		yield return new WaitForSeconds (ShootDelay); 
+}
+	
+	IEnumerator Reload () {
+		CurrentAmmo = EmptyMag; 
+		yield return new WaitForSeconds (ReloadTime); 
+		ReloadSound.Play(); 
+		CurrentAmmo = MaxAmmo; 
+		isReloading = false;
+	}
+}
+
